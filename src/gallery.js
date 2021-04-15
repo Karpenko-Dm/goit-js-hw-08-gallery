@@ -1,14 +1,19 @@
-import images from "./gallery-items.js";
+import galleryImages from "./gallery-items.js";
 
-const galleryList = document.querySelector('.js-gallery');
-const listMarkup = createGalleryItem(images);
+const refs = {
+  galleryContainer: document.querySelector(".js-gallery"),
+  lightboxContainer: document.querySelector(".js-lightbox"),
+  imgLightbox: document.querySelector("img.lightbox__image"),
+  closeLightBoxContainer: document.querySelector(
+    `[data-action = "close-lightbox"]`
+  ),
+  boxOverlay: document.querySelector("div.lightbox__overlay"),
+};
 
-galleryList.insertAdjacentHTML('beforeend', listMarkup);
+let counter = 0;
 
-function createGalleryItem(images) {
-  return images.map(({preview, original, description }) => {
-    return `
-  <li class="gallery__item">
+const imagesListTemplate = ({ preview, original, description }) => {
+  return `<li class="gallery__item">
   <a
     class="gallery__link"
     href="${original}"
@@ -20,39 +25,88 @@ function createGalleryItem(images) {
       alt="${description}"
     />
   </a>
-</li>
-  `;
-  })
-    .join('');
-}
-
-galleryList.addEventListener('click', onListMarkupClick);
-function onListMarkupClick(e) {
-    
-    if (!e.target.classList.contains('gallery__image')) {
-        return
-    }
-    console.log(e.target.dataset.source);
-}
- 
-const galleryClick = (e) => {
-    e.preventDefault();
-    const currentImg = e.target.dataset.source;
-    const currentAlt = e.target.alt;
-
-    
-    const lightboxImg = document.querySelector(".lightbox__image")
-    const lightboxContainer = document.querySelector(".js-lightbox")
-
-    if (e.target.nodeName === "IMG") {
-        lightboxContainer.classList.add("is-open");
-        lightboxImg.setAttribute("src", `${currentImg}`);
-        lightboxImg.setAttribute("alt", `${currentAlt}`);
-
-    }
+</li>`;
 };
-galleryList.addEventListener("click", galleryClick);
 
-//const lightboxClosed = document.querySelector(`[data-action="close-lightbox"]`);
+const addImg = galleryImages.map(imagesListTemplate).join("");
+
+refs.galleryContainer.insertAdjacentHTML("afterbegin", addImg);
+
+const galleryClick = (event) => {
+  event.preventDefault();
+
+  const currentImg = event.target.dataset.source;
+  const currentAlt = event.target.alt;
 
 
+  const findImgNavPosotion = () => {
+    counter = 0;
+    for (let i = 0; i < galleryImages.length; i++) {
+      counter += 1;
+      if (currentImg.includes(galleryImages[i].original)) {
+        counter -= 1;
+        return counter;
+      }
+    }
+  };
+  findImgNavPosotion();
+
+  if (event.target.nodeName === "IMG") {
+    refs.lightboxContainer.classList.add("is-open");
+    refs.imgLightbox.setAttribute("src", `${currentImg}`);
+    refs.imgLightbox.setAttribute("alt", `${currentAlt}`);
+  }
+};
+refs.galleryContainer.addEventListener("click", galleryClick);
+
+const closeLightBox = (event) => {
+  if (
+    event.target.nodeName === "BUTTON" &&
+    event.target.dataset.action === "close-lightbox"
+  ) {
+    closeContainer();
+  }
+  if (event.target.nodeName === "DIV") {
+    closeContainer();
+  }
+};
+
+refs.closeLightBoxContainer.addEventListener("click", closeLightBox);
+refs.boxOverlay.addEventListener("click", closeLightBox);
+
+const closeContainer = () => {
+  refs.lightboxContainer.classList.remove("is-open");
+  refs.imgLightbox.setAttribute("src", "");
+  refs.imgLightbox.setAttribute("alt", "");
+};
+
+const pressKeyLightBox = (event) => {
+  if (refs.lightboxContainer.classList.contains("is-open")) {
+    if (event.code === "Escape") {
+      closeContainer();
+    }
+    if (event.code === "ArrowRight") {
+      counter += 1;
+      if (counter === galleryImages.length) {
+        counter = 0;
+      }
+
+      currentGalleryImages();
+    }
+
+    if (event.code === "ArrowLeft") {
+      counter -= 1;
+      if (counter === -1) {
+        counter = 8;
+      }
+      currentGalleryImages();
+    }
+  }
+};
+
+const currentGalleryImages = () => {
+  refs.imgLightbox.setAttribute("src", `${galleryImages[counter].original}`);
+  refs.imgLightbox.setAttribute("alt", `${galleryImages[counter].description}`);
+};
+
+const pressKey = window.addEventListener("keyup", pressKeyLightBox);
